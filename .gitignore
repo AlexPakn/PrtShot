@@ -1,0 +1,6 @@
+/PrtShot.exe
+/PrtShot.zip
+*.pdb
+/bin/
+/obj/
+/.vs/
