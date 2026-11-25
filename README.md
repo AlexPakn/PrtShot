@@ -1,6 +1,6 @@
 # PrtShot
 
-PrtShot is a lightweight screenshot utility for Windows 10 and 11. It runs in the notification area and saves a selected region of the desktop as a JPEG.
+PrtShot is a minimalist screenshot tool for Windows 10 and 11. It stays in the system tray. Press **Print Screen**, select a region, and save it as a JPEG.
 
 ## Usage
 
