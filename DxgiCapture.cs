@@ -14,6 +14,7 @@ namespace PrtShot
         private const int NotFound = unchecked((int)0x887A0002);
         private const int AccessLost = unchecked((int)0x887A0026);
         private const int WaitTimeout = unchecked((int)0x887A0027);
+        private const uint Bgra8Unorm = 87; // DXGI_FORMAT_B8G8R8A8_UNORM
 
         public static Bitmap Take(Screen screen)
         {
@@ -95,6 +96,9 @@ namespace PrtShot
                         Check(result);
                         try
                         {
+                            if (surfacePointer == IntPtr.Zero)
+                                return null;
+
                             using (var surface = new ComPointer(surfacePointer))
                             {
                                 if (info.LastPresentTime == 0)
@@ -114,6 +118,9 @@ namespace PrtShot
         {
             TextureDescription description;
             texture.Method<GetTextureDesc>(10)(texture.Handle, out description);
+            if (description.Format != Bgra8Unorm)
+                return null;
+
             description.Usage = 3;        // D3D11_USAGE_STAGING
             description.BindFlags = 0;
             description.CpuAccess = 0x20000;  // D3D11_CPU_ACCESS_READ
@@ -138,16 +145,30 @@ namespace PrtShot
 
         private static Bitmap CopyPixels(MappedResource mapped, int width, int height, int rotation)
         {
+            if (mapped.Data == IntPtr.Zero || width <= 0 || height <= 0 || width > int.MaxValue / 4)
+                return null;
+
+            int rowBytes = width * 4;
+            if (mapped.RowPitch < rowBytes || mapped.RowPitch > int.MaxValue ||
+                (height - 1L) * mapped.RowPitch > int.MaxValue - rowBytes)
+                return null;
+
+            int rowPitch = (int)mapped.RowPitch;
             var image = new Bitmap(width, height, PixelFormat.Format32bppRgb);
             try
             {
                 BitmapData pixels = image.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, image.PixelFormat);
                 try
                 {
-                    var row = new byte[checked(width * 4)];
+                    long stride = Math.Abs((long)pixels.Stride);
+                    if (pixels.Scan0 == IntPtr.Zero || stride < rowBytes ||
+                        (height - 1L) * stride > int.MaxValue - rowBytes)
+                        throw new ExternalException("Invalid bitmap stride for DXGI capture.");
+
+                    var row = new byte[rowBytes];
                     for (int y = 0; y < height; y++)
                     {
-                        Marshal.Copy(IntPtr.Add(mapped.Data, checked(y * (int)mapped.RowPitch)), row, 0, row.Length);
+                        Marshal.Copy(IntPtr.Add(mapped.Data, y * rowPitch), row, 0, row.Length);
                         Marshal.Copy(row, 0, IntPtr.Add(pixels.Scan0, y * pixels.Stride), row.Length);
                     }
                 }

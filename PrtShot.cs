@@ -13,7 +13,7 @@ using Microsoft.Win32;
 
 [assembly: System.Reflection.AssemblyTitle("PrtShot")]
 [assembly: System.Reflection.AssemblyProduct("PrtShot")]
-[assembly: System.Reflection.AssemblyVersion("1.2.2.0")]
+[assembly: System.Reflection.AssemblyVersion("1.2.3.0")]
 
 namespace PrtShot
 {
@@ -175,7 +175,15 @@ namespace PrtShot
                 if (closed.DialogResult != DialogResult.OK)
                     return;
 
-                using (Bitmap crop = selectionImage.Clone(closed.Area, PixelFormat.Format24bppRgb))
+                Rectangle imageBounds = new Rectangle(Point.Empty, selectionImage.Size);
+                Rectangle area = Rectangle.Intersect(closed.Area, imageBounds);
+                if (area.Width <= 0 || area.Height <= 0)
+                {
+                    ShowCaptureError("Выделенная область пуста.");
+                    return;
+                }
+
+                using (Bitmap crop = selectionImage.Clone(area, PixelFormat.Format24bppRgb))
                 {
                     string saved = ScreenshotFiles.Save(crop, ScreenshotFiles.Folder);
                     if (!closed.CopyRequested)
@@ -349,7 +357,8 @@ namespace PrtShot
                 int hotkeyId = message.WParam.ToInt32();
                 if (hotkeyId == PrintScreenId)
                 {
-                    lastPrintScreenHotkey = GetMessageTime();
+                    // A queued fallback already has the corresponding Raw Input release.
+                    lastPrintScreenHotkey = fallbackQueued && !printScreenDown ? (int?)null : GetMessageTime();
                     pressHandled = printScreenDown;
                     fallbackQueued = false;
                     capture();
@@ -410,6 +419,9 @@ namespace PrtShot
 
             bool plain = !modified && (!printScreenDown || plainPress);
             bool handled = pressHandled || recentHotkey;
+            if (handled)
+                lastPrintScreenHotkey = null;
+
             printScreenDown = false;
             pressHandled = false;
             if (plain && !handled && !fallbackQueued)
@@ -796,7 +808,7 @@ namespace PrtShot
             {
                 Screen screen = Screen.FromHandle(GetForegroundWindow());
                 Rectangle area = Rectangle.Intersect(desktop, screen.Bounds);
-                if (area.IsEmpty)
+                if (area.Width <= 0 || area.Height <= 0)
                     return bitmap;
 
                 var sample = area;
