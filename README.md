@@ -14,7 +14,7 @@ Screenshots go to the `Screenshots` subfolder of your Windows Pictures folder. T
 
 The selection overlay is designed to appear without taking keyboard focus from the active app. If a fullscreen game briefly covers the overlay, press **Print Screen** again to bring it forward.
 
-Games and other apps running as administrator may block PrtShot unless it also runs as administrator.
+Games and other apps running as administrator can interfere with the **Print Screen** shortcut. In testing with **Identity V on Windows**, running PrtShot as administrator restored the shortcut.
 
 If **Print Screen** opens Snipping Tool, turn off its Print Screen shortcut in Windows keyboard settings.
 
@@ -39,8 +39,10 @@ If an app running as administrator blocks the capture shortcut, try running PrtS
 5. In **Actions**, add **Start a program**. For a standard Windows installation, use `C:\Windows\System32\cmd.exe` as **Program/script**, `C:\Program Files\PrtShot` as **Start in**, and the following as **Add arguments (optional)**. Adjust the absolute paths if your installation uses different locations.
 
 ```text
-/D /S /C "set "COR_ENABLE_PROFILING=0" & set "COMPLUS_ProfAPI_ProfilerCompatibilitySetting=" & set "APPDOMAIN_MANAGER_ASM=" & set "APPDOMAIN_MANAGER_TYPE=" & set "DEVPATH=" & set "PATH=C:\Windows\System32;C:\Windows" & "C:\Program Files\PrtShot\PrtShot.exe""
+/D /S /C "set "COR_ENABLE_PROFILING=0" & set "COMPLUS_ProfAPI_ProfilerCompatibilitySetting=" & set "APPDOMAIN_MANAGER_ASM=" & set "APPDOMAIN_MANAGER_TYPE=" & set "DEVPATH=" & set "PATH=C:\Windows\System32;C:\Windows" & start "" /B "C:\Program Files\PrtShot\PrtShot.exe""
 ```
+
+If you already created the task, replace its arguments in **Properties** → **Actions** → **Edit**. The command window may appear briefly and closes after launching PrtShot.
 
 In **Settings**, clear **Stop the task if it runs longer than** so PrtShot can stay in the tray. On a laptop, check the battery options in **Conditions** if you want it to start and stay running on battery.
 
